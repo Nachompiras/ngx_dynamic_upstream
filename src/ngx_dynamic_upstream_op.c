@@ -407,7 +407,7 @@ ngx_dynamic_upstream_op_update_param(ngx_http_request_t *r, ngx_dynamic_upstream
                                      ngx_slab_pool_t *shpool, ngx_http_upstream_srv_conf_t *uscf)
 {
     ngx_http_upstream_rr_peer_t   *peer, *target;
-    ngx_http_upstream_rr_peers_t  *peers;
+    ngx_http_upstream_rr_peers_t  *peers, *peers_bk;
 
     peers = uscf->peer.data;
 
@@ -416,6 +416,18 @@ ngx_dynamic_upstream_op_update_param(ngx_http_request_t *r, ngx_dynamic_upstream
         if (op->server.len == peer->name.len && ngx_strncmp(op->server.data, peer->name.data, peer->name.len) == 0) {
             target = peer;
             break;
+        }
+    }
+
+    if (target == NULL) {
+        peers_bk = peers->next;
+        if(peers_bk != NULL){
+            for (peer = peers_bk->peer; peer ; peer = peer->next) {
+                if (op->server.len == peer->name.len && ngx_strncmp(op->server.data, peer->name.data, peer->name.len) == 0) {
+                    target = peer;
+                    break;
+                }
+            }
         }
     }
 

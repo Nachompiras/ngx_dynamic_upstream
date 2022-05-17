@@ -90,7 +90,8 @@ ngx_dynamic_upstream_create_response_buf(ngx_http_upstream_rr_peers_t *peers, ng
 {
     ngx_http_upstream_rr_peer_t  *peer;
     u_char                        namebuf[512], *last;
-
+    ngx_http_upstream_rr_peers_t *peers_bk;
+    
     last = b->last + size;
 
     for (peer = peers->peer; peer; peer = peer->next) {
@@ -112,6 +113,27 @@ ngx_dynamic_upstream_create_response_buf(ngx_http_upstream_rr_peers_t *peers, ng
 
         b->last = peer->down ? ngx_snprintf(b->last, last - b->last, " down;\n") : ngx_snprintf(b->last, last - b->last, ";\n");
     }
+
+    peers_bk = peers->next;
+    if(peers_bk != NULL){
+        peer = peers_bk->peer;
+        if (peer->name.len > 511) {
+            return NGX_ERROR;
+        }
+
+        ngx_cpystrn(namebuf, peer->name.data, peer->name.len + 1);
+
+        if (verbose) {
+            b->last = ngx_snprintf(b->last, last - b->last, "server %s backup weight=%d max_fails=%d fail_timeout=%d",
+                                   namebuf, peer->weight, peer->max_fails, peer->fail_timeout, peer->down);
+
+        } else {
+            b->last = ngx_snprintf(b->last, last - b->last, "server %s backup", namebuf);
+
+        }
+        b->last = peer->down ? ngx_snprintf(b->last, last - b->last, " down;\n") : ngx_snprintf(b->last, last - b->last, ";\n");
+    }
+
 
     return NGX_OK;
 }
